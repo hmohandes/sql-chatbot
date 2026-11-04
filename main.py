@@ -86,9 +86,8 @@ async def query_database(request: QuestionRequest):
 async def health_check():
     """Health check endpoint"""
     try:
-        # Try to connect to database
-        db.connect()
-        db.disconnect()
+        # Try to connect to database (or check existing connection)
+        db.ensure_connection()
         return {"status": "healthy", "database": "connected"}
     except Exception as e:
         return {"status": "unhealthy", "database": "disconnected", "error": str(e)}

@@ -26,15 +26,21 @@ class DatabaseConnection:
         """Close database connection"""
         if self.connection:
             self.connection.close()
+            self.connection = None
             logger.info("Database connection closed")
+
+    def ensure_connection(self):
+        """Ensure connection is alive, reconnect if necessary"""
+        if self.connection is None or self.connection.closed:
+            logger.info("Reconnecting to database")
+            self.connect()
 
     def list_tables(self) -> str:
         """
         List all tables in the database.
         Returns comma-separated list of table names.
         """
-        if not self.connection:
-            self.connect()
+        self.ensure_connection()
 
         query = """
             SELECT table_name
@@ -59,8 +65,7 @@ class DatabaseConnection:
         Input: comma-separated list of table names
         Output: schema information with sample data
         """
-        if not self.connection:
-            self.connect()
+        self.ensure_connection()
 
         tables = [t.strip() for t in table_names.split(",") if t.strip()]
         schema_info = []
@@ -115,8 +120,7 @@ class DatabaseConnection:
         Input: SQL query string
         Output: formatted results or error message
         """
-        if not self.connection:
-            self.connect()
+        self.ensure_connection()
 
         try:
             with self.connection.cursor() as cursor:
