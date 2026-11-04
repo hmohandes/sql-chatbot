@@ -14,7 +14,8 @@ def sql_db_list_tables(input_data: str = "") -> str:
     logger.info("Tool: sql_db_list_tables called")
     try:
         result = db.list_tables()
-        logger.info(f"Tool: sql_db_list_tables result: {result}")
+        result_str = str(result)[:200] if result is not None else 'empty'
+        logger.info(f"Tool: sql_db_list_tables result: {result_str}")
         return result
     except Exception as e:
         error_msg = f"Error listing tables: {str(e)}"
@@ -28,7 +29,8 @@ def sql_db_schema(input_data: str) -> str:
     Input: comma-separated list of table names (e.g., "table1, table2, table3")
     Output: schema information with sample data
     """
-    logger.info(f"Tool: sql_db_schema called with input: {input_data}")
+    input_str = str(input_data)[:100] if input_data is not None else 'empty'
+    logger.info(f"Tool: sql_db_schema called with input: {input_str}")
     try:
         if not input_data or not input_data.strip():
             return "Error: No table names provided. Please provide a comma-separated list of table names."
@@ -48,13 +50,15 @@ def sql_db_query(input_data: str) -> str:
     Input: detailed and correct SQL query
     Output: result from the database or error message
     """
-    logger.info(f"Tool: sql_db_query called with query: {input_data[:100]}...")
+    input_str = str(input_data)[:100] if input_data is not None else 'empty'
+    logger.info(f"Tool: sql_db_query called with query: {input_str}...")
     try:
         if not input_data or not input_data.strip():
             return "Error: No query provided."
 
         result = db.execute_query(input_data)
-        logger.info(f"Tool: sql_db_query result: {result[:200]}...")
+        result_str = str(result)[:200] if result is not None else 'empty'
+        logger.info(f"Tool: sql_db_query result: {result_str}...")
         return result
     except Exception as e:
         error_msg = f"Error executing query: {str(e)}"
@@ -68,7 +72,8 @@ def sql_db_query_checker(input_data: str) -> str:
     Input: SQL query
     Output: validated or corrected SQL query
     """
-    logger.info(f"Tool: sql_db_query_checker called with query: {input_data[:100]}...")
+    input_str = str(input_data)[:100] if input_data is not None else 'empty'
+    logger.info(f"Tool: sql_db_query_checker called with query: {input_str}...")
 
     # Note: This tool will be used by the AI agent through Ollama
     # The actual checking logic will be performed by the LLM

@@ -125,7 +125,8 @@ Always think step by step and explain your reasoning when necessary."""
 
     def _execute_tool(self, tool_name: str, tool_input: str) -> str:
         """Execute a tool and return the result"""
-        logger.info(f"Executing tool: {tool_name} with input: {tool_input[:100] if tool_input else 'empty'}...")
+        input_str = str(tool_input)[:100] if tool_input is not None else 'empty'
+        logger.info(f"Executing tool: {tool_name} with input: {input_str}...")
 
         if tool_name == "sql_db_list_tables":
             return sql_db_list_tables(tool_input)
@@ -161,8 +162,9 @@ SQL Query: {query}"""
         logger.info("Checking query with LLM")
         prompt = self._query_checker_prompt(query)
         checked_query = ollama_client.generate(prompt)
-        logger.info(f"Query check result: {checked_query[:100]}...")
-        return checked_query.strip()
+        if checked_query:
+            logger.info(f"Query check result: {checked_query[:100]}...")
+        return checked_query.strip() if checked_query else ""
 
     def process_question(self, question: str) -> Dict[str, Any]:
         """
