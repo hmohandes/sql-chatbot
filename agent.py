@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 class SQLAgent:
     def __init__(self):
-        self.max_iterations = 5
+        self.max_iterations = 10
         self.conversation_history = []
 
     def _build_system_prompt(self) -> str:
@@ -42,18 +42,13 @@ You have access to the following tools:
 - sql_db_query: Execute a SQL query. Input is the SQL query.
 - sql_db_query_checker: Double check a SQL query for common mistakes. Input is the SQL query.
 
-When you need to use a tool, respond with a JSON object in the following format:
-{{
-  "tool": "tool_name",
-  "input": "tool_input"
-}}
+When you need to use a tool, respond with ONLY a JSON object in the following format (no other text):
+{{"tool": "tool_name", "input": "tool_input"}}
 
-If you have enough information to answer the user's question, respond with a JSON object:
-{{
-  "answer": "your answer here"
-}}
+If you have enough information to answer the user's question, respond with ONLY a JSON object (no other text):
+{{"answer": "your answer here"}}
 
-Always think step by step and explain your reasoning when necessary."""
+Do not include any explanations or additional text. Only respond with the JSON object."""
 
     def _build_tools_schema(self) -> List[Dict]:
         """Build the tools schema for Ollama function calling"""
@@ -188,65 +183,74 @@ SQL Query: {query}"""
                 iteration += 1
                 logger.info(f"Iteration {iteration}/{self.max_iterations}")
 
-                # Get response from Ollama
-                tools_schema = self._build_tools_schema()
-                response = ollama_client.chat(messages, tools=tools_schema)
+                try:
+                    # Get response from Ollama (without function calling)
+                    response = ollama_client.chat(messages, tools=None)
 
-                if not response or "message" not in response:
-                    return {
-                        "error": "No response from AI model",
-                        "steps": steps_log
-                    }
+                    if not response or "message" not in response:
+                        return {
+                            "error": "No response from AI model",
+                            "steps": steps_log
+                        }
 
-                assistant_message = response["message"]
-                messages.append(assistant_message)
+                    assistant_message = response["message"]
+                    content = assistant_message.get("content", "")
+                    logger.debug(f"Assistant content: {content[:500]}...")
+                    messages.append(assistant_message)
 
-                # Check if assistant wants to use a tool
-                if "tool_calls" in assistant_message:
-                    for tool_call in assistant_message["tool_calls"]:
-                        tool_name = tool_call["function"]["name"]
-                        tool_input_str = tool_call["function"]["arguments"]
+                    # Try to parse as JSON
+                    try:
+                        parsed = json.loads(content.strip())
 
-                        # Parse tool input
-                        try:
-                            tool_input = json.loads(tool_input_str)
-                            input_value = tool_input.get("input", "")
-                        except:
-                            input_value = tool_input_str
+                        if "tool" in parsed:
+                            # Tool call
+                            tool_name = parsed["tool"]
+                            input_value = parsed.get("input", "")
 
-                        # Execute tool
-                        tool_result = self._execute_tool(tool_name, input_value)
+                            logger.info(f"Tool call: {tool_name} with input: {str(input_value)[:100]}...")
 
-                        if settings.debug:
-                            steps_log.append({
-                                "step": iteration,
-                                "tool": tool_name,
-                                "input": input_value,
-                                "output": tool_result
+                            # Execute tool
+                            tool_result = self._execute_tool(tool_name, input_value)
+
+                            if settings.debug:
+                                steps_log.append({
+                                    "step": iteration,
+                                    "tool": tool_name,
+                                    "input": input_value,
+                                    "output": tool_result
+                                })
+
+                            # Add tool result to conversation
+                            messages.append({
+                                "role": "user",
+                                "content": f"Tool {tool_name} returned: {tool_result}"
                             })
 
-                        # Add tool result to conversation
-                        messages.append({
-                            "role": "tool",
-                            "content": tool_result,
-                            "name": tool_name
-                        })
-
-                # Check if assistant provided an answer
-                elif "content" in assistant_message and assistant_message["content"]:
-                    content = assistant_message["content"]
-
-                    # Try to parse as JSON to check for answer
-                    try:
-                        parsed = json.loads(content)
-                        if "answer" in parsed:
+                        elif "answer" in parsed:
+                            # Final answer
                             final_answer = parsed["answer"]
+                            logger.info("Final answer received")
                         else:
-                            # Not a tool call or answer, continue conversation
-                            continue
+                            # Neither tool nor answer, continue
+                            logger.warning("Response neither tool call nor answer")
+                            messages.append({
+                                "role": "user",
+                                "content": "Please respond with either a tool call or an answer in JSON format."
+                            })
+
                     except json.JSONDecodeError:
-                        # Regular text response, treat as answer
+                        # Not JSON, treat as answer
+                        logger.info("Non-JSON response, treating as answer")
                         final_answer = content
+
+                except Exception as e:
+                    logger.error(f"Error in iteration {iteration}: {e}")
+                    import traceback
+                    logger.error(traceback.format_exc())
+                    return {
+                        "error": f"Error in iteration {iteration}: {str(e)}",
+                        "steps": steps_log
+                    }
 
             if final_answer:
                 logger.info("Successfully generated answer")

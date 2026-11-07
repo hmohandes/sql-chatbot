@@ -22,6 +22,8 @@ class OllamaClient:
         """
         try:
             logger.info(f"Sending chat request to Ollama model: {self.model}")
+            logger.debug(f"Number of messages: {len(messages)}")
+            logger.debug(f"Tools provided: {tools is not None}")
 
             kwargs = {
                 "model": self.model,
@@ -33,11 +35,18 @@ class OllamaClient:
 
             response = ollama.chat(**kwargs)
 
+            if response is None:
+                logger.error("Ollama returned None response")
+                raise ValueError("Ollama returned None response")
+
             logger.info(f"Received response from Ollama")
+            logger.debug(f"Response keys: {response.keys() if isinstance(response, dict) else 'Not a dict'}")
             return response
 
         except Exception as e:
             logger.error(f"Error communicating with Ollama: {e}")
+            import traceback
+            logger.error(traceback.format_exc())
             raise
 
     def generate(self, prompt: str) -> str:

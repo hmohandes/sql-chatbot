@@ -29,13 +29,17 @@ def sql_db_schema(input_data: str) -> str:
     Input: comma-separated list of table names (e.g., "table1, table2, table3")
     Output: schema information with sample data
     """
+    # Handle if input_data is a dict
+    if isinstance(input_data, dict):
+        input_data = input_data.get("input", "")
+
     input_str = str(input_data)[:100] if input_data is not None else 'empty'
     logger.info(f"Tool: sql_db_schema called with input: {input_str}")
     try:
-        if not input_data or not input_data.strip():
+        if not input_data or not str(input_data).strip():
             return "Error: No table names provided. Please provide a comma-separated list of table names."
 
-        result = db.get_schema(input_data)
+        result = db.get_schema(str(input_data))
         logger.info(f"Tool: sql_db_schema result retrieved")
         return result
     except Exception as e:
@@ -50,13 +54,17 @@ def sql_db_query(input_data: str) -> str:
     Input: detailed and correct SQL query
     Output: result from the database or error message
     """
+    # Handle if input_data is a dict
+    if isinstance(input_data, dict):
+        input_data = input_data.get("input", "")
+
     input_str = str(input_data)[:100] if input_data is not None else 'empty'
     logger.info(f"Tool: sql_db_query called with query: {input_str}...")
     try:
-        if not input_data or not input_data.strip():
+        if not input_data or not str(input_data).strip():
             return "Error: No query provided."
 
-        result = db.execute_query(input_data)
+        result = db.execute_query(str(input_data))
         result_str = str(result)[:200] if result is not None else 'empty'
         logger.info(f"Tool: sql_db_query result: {result_str}...")
         return result
@@ -72,13 +80,17 @@ def sql_db_query_checker(input_data: str) -> str:
     Input: SQL query
     Output: validated or corrected SQL query
     """
+    # Handle if input_data is a dict
+    if isinstance(input_data, dict):
+        input_data = input_data.get("input", "")
+
     input_str = str(input_data)[:100] if input_data is not None else 'empty'
     logger.info(f"Tool: sql_db_query_checker called with query: {input_str}...")
 
     # Note: This tool will be used by the AI agent through Ollama
     # The actual checking logic will be performed by the LLM
     # This function just passes through the query for the LLM to analyze
-    return input_data
+    return str(input_data) if input_data is not None else ""
 
 
 # Tool registry for the AI agent
