@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from typing import Optional
 from agent import agent
 from database import db
+from transformers_client import llm_client
 from config import settings
 import logging
 
@@ -29,13 +30,22 @@ class QuestionResponse(BaseModel):
 
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database connection on startup"""
+    """Initialize database connection and LLM model on startup"""
     try:
         db.connect()
-        logger.info("Application started successfully")
+        logger.info("Database connected successfully")
     except Exception as e:
         logger.error(f"Failed to connect to database on startup: {e}")
         # Don't raise here to allow the app to start even if DB is temporarily unavailable
+
+    try:
+        llm_client.initialize()
+        logger.info("LLM model loaded successfully")
+    except Exception as e:
+        logger.error(f"Failed to load LLM model on startup: {e}")
+        # Don't raise here to allow the app to start even if model loading fails
+
+    logger.info("Application started successfully")
 
 
 @app.on_event("shutdown")

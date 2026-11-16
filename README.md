@@ -1,6 +1,6 @@
 # SQL Chatbot
 
-A Python web application that acts as an AI-powered gateway to interact with PostgreSQL databases using natural language queries. The application uses Ollama (with the qwen2.5 model) to understand questions, generate SQL queries, and return results in a natural language format.
+A Python web application that acts as an AI-powered gateway to interact with PostgreSQL databases using natural language queries. The application uses Transformers (with customizable models like google/gemma-4-e2b) to understand questions, generate SQL queries, and return results in a natural language format.
 
 ## Features
 
@@ -28,7 +28,8 @@ The application follows a multi-step procedure to answer user questions:
 
 - Python 3.8 or higher
 - PostgreSQL database
-- Ollama installed and running with the qwen2.5 model
+- PyTorch and Transformers libraries
+- Sufficient GPU memory (recommended) or CPU for model inference
 
 ## Installation
 
@@ -42,24 +43,12 @@ cd C:\Users\Hossein\Desktop\Projects\sql-chatbot
 pip install -r requirements.txt
 ```
 
-3. Install and configure Ollama:
-```bash
-# Install Ollama (if not already installed)
-# Visit https://ollama.com for installation instructions
-
-# Pull the qwen2.5 model
-ollama pull qwen2.5
-
-# Start Ollama server (if not running)
-ollama serve
-```
-
-4. Configure environment variables:
+3. Configure environment variables:
 ```bash
 # Copy the example environment file
 copy .env.example .env
 
-# Edit .env with your database and Ollama configuration
+# Edit .env with your database and LLM configuration
 ```
 
 ## Configuration
@@ -74,14 +63,32 @@ DB_NAME=your_database
 DB_USER=your_username
 DB_PASSWORD=your_password
 
-# Ollama Configuration
-OLLAMA_HOST=http://localhost:11434
-OLLAMA_MODEL=qwen2.5
+# LLM Configuration (Transformers)
+LLM_MODEL=google/gemma-4-e2b
+LLM_DEVICE=auto  # auto, cpu, cuda
+LLM_MAX_LENGTH=2048
+LLM_TEMPERATURE=0.7
 
 # Application Configuration
 DEBUG=false
 TOP_K=5
+DIALECT=postgresql
 ```
+
+### LLM Model Options
+
+The `LLM_MODEL` setting can be set to any compatible Hugging Face model. Default is `google/gemma-2-2b-it`. Other options include:
+- `google/gemma-2-9b-it`
+- `microsoft/phi-3-mini-4k-instruct`
+- `TinyLlama/TinyLlama-1.1B-Chat-v1.0`
+- Or any other causal language model from Hugging Face
+
+### Device Configuration
+
+The `LLM_DEVICE` setting controls where the model runs:
+- `auto`: Automatically select available GPU (CUDA) or CPU
+- `cuda`: Force GPU usage (requires CUDA-compatible GPU)
+- `cpu`: Force CPU usage (slower but no GPU required)
 
 ## Running the Application
 
@@ -252,10 +259,12 @@ Set `DEBUG=true` in the `.env` file or pass `"debug": true` in the request to en
 - Check database credentials in `.env`
 - Ensure the database exists and user has necessary permissions
 
-### Ollama Connection Issues
-- Ensure Ollama server is running (`ollama serve`)
-- Verify the qwen2.5 model is pulled (`ollama pull qwen2.5`)
-- Check OLLAMA_HOST in `.env` matches your Ollama configuration
+### LLM Model Issues
+- Ensure you have sufficient memory (GPU recommended for faster inference)
+- If using CPU, set `LLM_DEVICE=cpu` in `.env`
+- Verify the model name is correct and available on Hugging Face
+- First startup may take longer as the model downloads
+- Check torch installation matches your CUDA version if using GPU
 
 ### Query Errors
 - Enable debug mode to see step-by-step execution
@@ -270,7 +279,7 @@ sql-chatbot/
 ├── config.py            # Configuration management
 ├── database.py          # Database connection and operations
 ├── tools.py             # SQL tool implementations
-├── ollama_client.py     # Ollama API client
+├── transformers_client.py  # Transformers LLM client
 ├── agent.py             # Main agent logic and procedure
 ├── requirements.txt     # Python dependencies
 ├── .env.example         # Example environment configuration

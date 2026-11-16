@@ -1,5 +1,5 @@
 from typing import List, Dict, Any, Optional
-from ollama_client import ollama_client
+from transformers_client import llm_client
 from tools import TOOLS, sql_db_list_tables, sql_db_schema, sql_db_query, sql_db_query_checker
 from config import settings
 import logging
@@ -156,7 +156,7 @@ SQL Query: {query}"""
         """Use LLM to check query for common mistakes"""
         logger.info("Checking query with LLM")
         prompt = self._query_checker_prompt(query)
-        checked_query = ollama_client.generate(prompt)
+        checked_query = llm_client.generate(prompt)
         if checked_query:
             logger.info(f"Query check result: {checked_query[:100]}...")
         return checked_query.strip() if checked_query else ""
@@ -184,8 +184,8 @@ SQL Query: {query}"""
                 logger.info(f"Iteration {iteration}/{self.max_iterations}")
 
                 try:
-                    # Get response from Ollama (without function calling)
-                    response = ollama_client.chat(messages, tools=None)
+                    # Get response from LLM (without function calling)
+                    response = llm_client.chat(messages, tools=None)
 
                     if not response or "message" not in response:
                         return {

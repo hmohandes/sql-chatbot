@@ -10,9 +10,11 @@ class Settings(BaseSettings):
     db_user: str = ""
     db_password: str = ""
 
-    # Ollama Configuration
-    ollama_host: str = "http://localhost:11434"
-    ollama_model: str = "qwen2.5"
+    # LLM Configuration (Transformers)
+    llm_model: str = "google/gemma-2-2b-it"
+    llm_device: str = "auto"  # auto, cpu, cuda
+    llm_max_length: int = 2048
+    llm_temperature: float = 0.7
 
     # Application Configuration
     debug: bool = False
