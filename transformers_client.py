@@ -45,23 +45,36 @@ class TransformersClient:
             if self.tokenizer.pad_token is None:
                 self.tokenizer.pad_token = self.tokenizer.eos_token
 
-            # Determine device
+            # Determine device and dtype
             if self.device == "auto":
-                device = 0 if torch.cuda.is_available() else -1
+                use_device_map = True
+                torch_dtype = torch.float16 if torch.cuda.is_available() else torch.float32
             elif self.device == "cuda":
-                device = 0 if torch.cuda.is_available() else -1
+                use_device_map = True
+                torch_dtype = torch.float16
             else:
-                device = -1
+                use_device_map = False
+                torch_dtype = torch.float32
 
-            # Create generation pipeline directly (simpler approach)
-            self.generator = pipeline(
-                "text-generation",
-                model=self.model_name,
-                tokenizer=self.tokenizer,
-                device=device,
-                torch_dtype=torch.float16 if device >= 0 else torch.float32,
-                model_kwargs={"device_map": "auto" if self.device == "auto" else None}
-            )
+            # Create generation pipeline
+            if use_device_map:
+                # Use device_map with accelerate (don't pass device argument)
+                self.generator = pipeline(
+                    "text-generation",
+                    model=self.model_name,
+                    tokenizer=self.tokenizer,
+                    torch_dtype=torch_dtype,
+                    model_kwargs={"device_map": "auto"}
+                )
+            else:
+                # Use CPU without device_map
+                self.generator = pipeline(
+                    "text-generation",
+                    model=self.model_name,
+                    tokenizer=self.tokenizer,
+                    device=-1,
+                    torch_dtype=torch_dtype
+                )
 
             self._initialized = True
             logger.info("Model loaded successfully")
